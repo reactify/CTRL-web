@@ -1,0 +1,61 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+    <title>CTRL WEB</title>
+    <link rel="stylesheet" href="http://reactifymusic.com/CTRL/default.css" type="text/css" />
+    <script src="http://code.jquery.com/jquery-1.4.2.min.js"></script>
+    <script src="http://code.jquery.com/mobile/1.2.0/jquery.mobile-1.2.0.min.js"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <script src="./socket.io/socket.io.js"></script>
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+
+    <script>
+      var socket = io.connect('10.47.8.137');
+      socket.on('news', function (data) {
+        console.log(data);
+        socket.emit('my other event', { my: 'data' });
+      });
+
+      socket.on('log', function (label, data) {
+        console.log(label);
+        console.log(data);
+      });
+      // on connection to server, ask for user's name with an anonymous callback
+      socket.on('connect', function(){
+        // call the server-side function 'adduser' and send one parameter (value of prompt)
+        socket.emit('adduser', 'blah');
+      });
+
+      var origColours = ['red', 'green', 'blue', 'yellow'];
+
+      $(document).ready(function() {
+        $(".btn").bind('taphold', function(event) {
+          event.preventDefault();
+        })
+        $(".btn").bind('vmousedown', function(event) {
+          // alert('vmousedown triggered!');
+          $(this).css({"backgroundColor": "grey"});
+          event.preventDefault();
+
+          socket.emit('buttonPressed', $(this).attr('buttonIndex'));
+
+        })
+        $(".btn").bind('vmouseup', function(event) {
+          // alert('vmouseup triggered!');
+          $(this).css({"backgroundColor": origColours[$(this).attr('buttonIndex')]});
+          event.preventDefault();
+
+          socket.emit('buttonReleased', $(this).attr('buttonIndex'));
+
+        })
+      });
+    </script>
+    
+  </head>
+  <body>
+     <div id="btn1" class="btn" buttonIndex="0"></div>
+     <div id="btn2" class="btn" buttonIndex="1"></div>
+     <div id="btn3" class="btn" buttonIndex="2"></div>
+     <div id="btn4" class="btn" buttonIndex="3"></div>
+  </body>
+</html>
