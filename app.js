@@ -14,20 +14,17 @@ io.set("log level", 1); // reduce logging
 
 var sendHeartbeat;
 
-function sendOSC(button, state) {
+function sendOSC(oscAddress, state1, state2) {
   var buf;
-  var address = "button" + button;
-  buf = osc.toBuffer({
-    address: address,
-    args: [
-      new Buffer("beat"), {
-        type: "integer",
-        value: 7
-      }
-    ]
-  });
-  console.log(address);
-  return udp.send(buf, 0, buf.length, outport, "localhost");
+  if (oscAddress != undefined) {
+    var address = oscAddress;
+    buf = osc.toBuffer({
+      address: address,
+      args: [state1, state2]
+    })
+    // console.log(address);
+    return udp.send(buf, 0, buf.length, outport, "localhost");
+  };
 };
 
 function handler (req, res) {
@@ -55,27 +52,28 @@ function handler (req, res) {
 
 io.sockets.on('connection', function (socket) {
   socket.emit('news', { hello: 'world' });
-  // socket.on('my other event', function (data) {
-  //   console.log(data);
-  // });
+    console.log("User connected");
+
   // when the client emits 'adduser', this listens and executes
   socket.on('adduser', function(username){
     // echo to client they've connected
     socket.emit('updatechat', 'SERVER', 'you have connected');
     // update the list of users in chat, client-side
+  });
 
-
-    // console.log(xPositions);
+  socket.on('didAccelerate', function(tilt) {
+    console.log('Tilt = ' + tilt);
+    sendOSC(sendOSC("accel", tilt[0], tilt[1]));
   });
 
   socket.on('buttonPressed', function(buttonIndex) {
     console.log('Button pressed = ' + buttonIndex);
-    sendOSC(sendOSC(buttonIndex, 1));
+    sendOSC(sendOSC("button" + buttonIndex, 1, undefined));
   });
 
   socket.on('buttonReleased', function(buttonIndex) {
     console.log('Button released = ' + buttonIndex);
-    sendOSC(sendOSC(buttonIndex, 0));
+    sendOSC(sendOSC("button" + buttonIndex, 0, undefined));
   });
   
   // when the user disconnects.. perform this

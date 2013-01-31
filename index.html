@@ -10,7 +10,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
 
     <script>
-      var socket = io.connect('10.47.8.137');
+      var socket = io.connect('10.47.8.169');
       socket.on('news', function (data) {
         console.log(data);
         socket.emit('my other event', { my: 'data' });
@@ -27,8 +27,14 @@
       });
 
       var origColours = ['red', 'green', 'blue', 'yellow'];
+      var tilt;
 
       $(document).ready(function() {
+
+        window.addEventListener("devicemotion", function(event) {
+          tilt = [event.acceleration.x * 2, event.acceleration.y * 2];
+        }, true);
+
         $(".btn").bind('taphold', function(event) {
           event.preventDefault();
         })
@@ -40,6 +46,7 @@
           socket.emit('buttonPressed', $(this).attr('buttonIndex'));
 
         })
+
         $(".btn").bind('vmouseup', function(event) {
           // alert('vmouseup triggered!');
           $(this).css({"backgroundColor": origColours[$(this).attr('buttonIndex')]});
@@ -49,6 +56,12 @@
 
         })
       });
+       window.ondevicemotion = function() {
+          if (tilt) {
+            socket.emit('didAccelerate', tilt);
+          };
+       };
+
     </script>
     
   </head>
