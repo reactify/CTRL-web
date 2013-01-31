@@ -32,7 +32,7 @@
       $(document).ready(function() {
 
         window.addEventListener("devicemotion", function(event) {
-          tilt = [event.acceleration.x * 2, event.acceleration.y * 2];
+          tilt = [event.accelerationIncludingGravity.x, event.accelerationIncludingGravity.y];
         }, true);
 
         $(".btn").bind('taphold', function(event) {

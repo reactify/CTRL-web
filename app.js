@@ -14,13 +14,13 @@ io.set("log level", 1); // reduce logging
 
 var sendHeartbeat;
 
-function sendOSC(oscAddress, state1, state2) {
+function sendOSC(oscAddress, state) {
   var buf;
   if (oscAddress != undefined) {
-    var address = oscAddress;
+    var address = "/" + oscAddress;
     buf = osc.toBuffer({
       address: address,
-      args: [state1, state2]
+      args: [state]
     })
     // console.log(address);
     return udp.send(buf, 0, buf.length, outport, "localhost");
@@ -62,18 +62,19 @@ io.sockets.on('connection', function (socket) {
   });
 
   socket.on('didAccelerate', function(tilt) {
-    console.log('Tilt = ' + tilt);
-    sendOSC(sendOSC("accel", tilt[0], tilt[1]));
+    // console.log('Tilt = ' + tilt);
+    sendOSC(sendOSC("accelX", tilt[0]));
+    sendOSC(sendOSC("accelY", tilt[1]));
   });
 
   socket.on('buttonPressed', function(buttonIndex) {
     console.log('Button pressed = ' + buttonIndex);
-    sendOSC(sendOSC("button" + buttonIndex, 1, undefined));
+    sendOSC(sendOSC("button" + buttonIndex, 1));
   });
 
   socket.on('buttonReleased', function(buttonIndex) {
     console.log('Button released = ' + buttonIndex);
-    sendOSC(sendOSC("button" + buttonIndex, 0, undefined));
+    sendOSC(sendOSC("button" + buttonIndex, 0));
   });
   
   // when the user disconnects.. perform this
