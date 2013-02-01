@@ -12,6 +12,12 @@ BODY{
   -webkit-touch-callout: none !important;
 } 
 
+@media screen and (device-width: 640px) {
+  HTML {
+    background: green;
+  }
+}
+
 .footer {
 	background:#EEEEEE;
 	width: 650px;
