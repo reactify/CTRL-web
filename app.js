@@ -1,18 +1,23 @@
-var app = require('http').createServer(handler), 
-    io = require('socket.io').listen(app), 
+var http = require('http'),
+    static = require('node-static');
     fs = require('fs'),
     osc = require('osc-min'),
     dgram = require('dgram'),
+    path = require('path');
     udp = dgram.createSocket('udp4');
-
-app.listen(8080);
 
 var outport = 41234;
 
+var file = new(static.Server)();
+
+http.createServer(function (req, res) {
+  file.serve(req, res);
+}).listen(8080);
+
+var io = require('socket.io').listen(8081);
+
 io.set("origins = *");
 io.set("log level", 1); // reduce logging
-
-var sendHeartbeat;
 
 function sendOSC(oscAddress, state) {
   var buf;
@@ -27,28 +32,44 @@ function sendOSC(oscAddress, state) {
   };
 };
 
-function handler (req, res) {
-  fs.readFile(__dirname + '/index.html',
-  function (err, data) {
-    if (err) {
-      res.writeHead(500);
-      return res.end('Error loading index.html');
-    }
+var usernames = {};
 
-    // add needed headers
-    var headers = {};
-    headers["Access-Control-Allow-Origin"] = "*";
-    headers["Access-Control-Allow-Methods"] = "POST, GET, PUT, DELETE, OPTIONS";
-    headers["Access-Control-Allow-Credentials"] = true;
-    headers["Access-Control-Max-Age"] = '86400'; // 24 hours
-    // headers["content-type"] = 'text/json'; // mmm json
-    headers["Access-Control-Allow-Headers"] = "X-Requested-With, Access-Control-Allow-Origin, X-HTTP-Method-Override, Content-Type, Authorization, Accept";
-    // respond to the request
-    res.writeHead(200, headers);
-    res.end(data);
-  });
+user = new Object();
+user.userName = "Blah";
+user.assignedButtons = [0,1];
+
+Object.size = function(obj) {
+    var size = 0, key;
+    for (key in obj) {
+        if (obj.hasOwnProperty(key)) size++;
+    }
+    return size;
 };
 
+// Get the size of an object
+var usersCount;
+
+function sortButtons () {
+  console.log('Dividing buttons among '+usersCount+ ' users');
+  switch (usersCount) {
+    case 1:
+      return [0, 1];
+    case 2:
+      return [2, 3];
+    case 3:
+      return [0, 2];
+    case 4:
+      return [0, 1, 2, 3];
+    default:
+      return [0, 1, 2, 3];
+  }
+    
+}
+
+function addUser(name, assignedButtons) {
+  this.userName = name;
+  this.assignedButtons = assignedButtons;
+}
 
 io.sockets.on('connection', function (socket) {
   socket.emit('news', { hello: 'world' });
@@ -56,10 +77,31 @@ io.sockets.on('connection', function (socket) {
 
   // when the client emits 'adduser', this listens and executes
   socket.on('adduser', function(username){
-    // echo to client they've connected
-    socket.emit('updatechat', 'SERVER', 'you have connected');
-    // update the list of users in chat, client-side
+    // we store the username in the socket session for this client
+    socket.username = username;
+
+    // set up a new user object and pre-populate it
+    var newUser = new addUser(username, [0, 1, 2, 3]);
+
+    console.log('New user = ' + newUser.userName);
+
+    // add the client's username to the global list
+    usernames[username] = newUser;
+    
+    // recalculate number of users
+    usersCount = Object.size(usernames);
+
+    // assign this user some buttons
+    newUser.assignedButtons = sortButtons();
+
+    console.log(usernames);
+
+    // tell client to update its view
+    socket.emit('assignButtons', newUser.userName, newUser.assignedButtons);
+
   });
+
+
 
   socket.on('didAccelerate', function(tilt) {
     // console.log('Tilt = ' + tilt);
