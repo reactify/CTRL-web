@@ -12,8 +12,10 @@
 
     <script>
       var clientName;
+      var peerName;
+      var totalButtonCount = 4;
 
-      var socket = io.connect('192.168.1.67:8081');
+      var socket = io.connect('192.168.1.74:8081');
       socket.on('news', function (data) {
         console.log(data);
         socket.emit('my other event', { my: 'data' });
@@ -31,20 +33,50 @@
         socket.emit('adduser', clientName);
       });
 
-      socket.on('assignButtons', function(user, buttonsToEnable) {
-        console.log('assignButtons');
-        if (user == clientName) {
-          console.log("Assigning buttons to " + user);
-          enableButtons(buttonsToEnable);
-        }
+      socket.on('peerButtonPressed', function(button) {
+        $('#btn'+button).css({"backgroundColor": "grey"});
       })
 
+      socket.on('peerButtonReleased', function(button) {
+        $('#btn'+button).css({"backgroundColor": origColours[button]});
+      })
+
+      socket.on('assignButtons', function(users) {
+        for (var i=0; i < totalButtonCount; i++) {
+          var buttonToDisable = "#btn"+i;
+          $(buttonToDisable).unbind();
+
+          $(buttonToDisable).css({"opacity": "0.5"});
+        }
+
+        for (var i=0; i < users.length; i++) {
+          if (users[i].userName == clientName) {
+            enableButtons(users[i].assignedButtons);
+            labelButtons(users[i].userName, users[i].assignedButtons);
+          }else{
+            labelButtons(users[i].userName, users[i].assignedButtons);
+          }
+        }
+        // console.log('Users = ' + users[0].userName);
+        // enableButtons
+      })
+
+      function labelButtons (name, buttonsToLabel) {
+        for (var i=0; i < buttonsToLabel.length; i++) {
+          // console.log('Labelling button ' + buttonsToLabel[i] + ' with ' + name);
+          var buttonToLabel = "#btn"+buttonsToLabel[i];
+          $(buttonToLabel).text(name);
+        }
+      }
+
       function enableButtons (enableButtons) {
-        
+
         for (var i=0; i < enableButtons.length; i++) {
-          console.log('Enabling button ' + enableButtons[i]);
+          // console.log('Enabling button ' + enableButtons[i]);
           var buttonToEnable = "#btn"+enableButtons[i];
-          $(buttonToEnable).text(clientName);
+
+          $(buttonToEnable).css({"opacity": "1.0"});
+
           $(buttonToEnable).bind('vmousedown', function(event) {
             // alert('vmousedown triggered!');
             $(this).css({"backgroundColor": "grey"});
@@ -71,7 +103,9 @@
       $(document).ready(function() {
 
         window.addEventListener("devicemotion", function(event) {
-          tilt = [event.accelerationIncludingGravity.x, event.accelerationIncludingGravity.y];
+          tilt = [  (event.accelerationIncludingGravity.x/10), 
+                    (event.accelerationIncludingGravity.y/10),
+                    (event.acceleration.z/10)];
         }, true);
 
         $(".btn").bind('taphold', function(event) {

@@ -45,26 +45,33 @@ a:active {
 }
 
 .btn {
-  width:48%;
-  height:48%;
+  width:42%;
+  height:42%;
   background-color: red;
   float:left;
   margin:1%;
   color:black;
   font-weight: bold;
+  opacity: 0.5;
+  border-style: solid;
+  border-width: 7px;
 }
 
 #btn0 {
   background-color: red;
+  border-color: red;
 }
 #btn1 {
   background-color: green;
+  border-color: green;
 }
 #btn2 {
   background-color: blue;
+  border-color: blue;
 }
 #btn3 {
   background-color: yellow;
+  border-color: yellow;
 }
 
 @media screen and (min-width:321px) {

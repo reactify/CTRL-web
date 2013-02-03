@@ -33,6 +33,8 @@ function sendOSC(oscAddress, state) {
 };
 
 var usernames = {};
+var usernames2 = [];
+var controller;
 
 user = new Object();
 user.userName = "Blah";
@@ -49,21 +51,20 @@ Object.size = function(obj) {
 // Get the size of an object
 var usersCount;
 
-function sortButtons () {
-  console.log('Dividing buttons among '+usersCount+ ' users');
-  switch (usersCount) {
+function sortButtons (count) {
+  console.log('Dividing buttons among '+count+ ' users');
+  switch (count) {
     case 1:
-      return [0, 1];
+      return [[0, 1, 2, 3], [], [], []];
     case 2:
-      return [2, 3];
+      return [[0, 1], [2, 3], [], []];
     case 3:
-      return [0, 2];
+      return [[0, 1], [2], [3], []];
     case 4:
-      return [0, 1, 2, 3];
+      return [[0], [1], [2], [3]];
     default:
       return [0, 1, 2, 3];
   }
-    
 }
 
 function addUser(name, assignedButtons) {
@@ -87,41 +88,97 @@ io.sockets.on('connection', function (socket) {
 
     // add the client's username to the global list
     usernames[username] = newUser;
-    
+
+    usernames2.unshift(newUser);
+
     // recalculate number of users
     usersCount = Object.size(usernames);
 
-    // assign this user some buttons
-    newUser.assignedButtons = sortButtons();
+    if (usersCount == 5) {
+      console.log('Removing a user');
+      usernames2.splice(3, 1)
+      delete usernames[socket.username]; 
+      usersCount = Object.size(usernames);  
+    }
 
-    console.log(usernames);
+    // recalculate the distribution of buttons across users based on number of connected users
+    var sortedButtons = sortButtons(usersCount);
+
+    // assign each connected user their buttons
+    for (i=0; i < usersCount; i++) {
+      usernames2[i].assignedButtons = sortedButtons[i];
+      console.log('assigning user ' + usernames2[i] + ' these buttons ' + sortedButtons[usersCount-1]);
+    }
+
+    console.log(usernames2);
 
     // tell client to update its view
-    socket.emit('assignButtons', newUser.userName, newUser.assignedButtons);
-
+    io.sockets.emit('assignButtons', usernames2);
   });
 
 
 
   socket.on('didAccelerate', function(tilt) {
-    // console.log('Tilt = ' + tilt);
-    sendOSC(sendOSC("accelX", tilt[0]));
-    sendOSC(sendOSC("accelY", tilt[1]));
+    for (var i=0; i<usersCount; i++) {
+      if (usernames2[i].userName == socket.username) {
+        sendOSC(sendOSC(i + "/accelX", tilt[0]));
+        sendOSC(sendOSC(i + "/accelY", tilt[1]));
+        sendOSC(sendOSC(i + "/accelZ", tilt[2]));
+      }
+    }
   });
 
   socket.on('buttonPressed', function(buttonIndex) {
-    console.log('Button pressed = ' + buttonIndex);
-    sendOSC(sendOSC("button" + buttonIndex, 1));
+    for (var i=0; i<usersCount; i++) {
+      if (usernames2[i].userName == socket.username) {
+        console.log(usernames2[i].userName + ' pressed = ' + buttonIndex);
+        sendOSC(sendOSC(i + "/button" + buttonIndex, 1));
+        io.sockets.emit('peerButtonPressed', buttonIndex);
+      }
+    }
   });
 
   socket.on('buttonReleased', function(buttonIndex) {
-    console.log('Button released = ' + buttonIndex);
-    sendOSC(sendOSC("button" + buttonIndex, 0));
+    for (var i=0; i<usersCount; i++) {
+      if (usernames2[i].userName == socket.username) {
+        console.log(usernames2[i].userName + ' released = ' + buttonIndex);
+        sendOSC(sendOSC(i + "/button" + buttonIndex, 0));
+        io.sockets.emit('peerButtonReleased', buttonIndex);
+      }
+    }
   });
   
   // when the user disconnects.. perform this
+  // TO-DO // TIDY THIS UP. LOTS OF IDENTICAL/REDUNTANT CALLS TO .connect ABOVE
   socket.on('disconnect', function(){
+    console.log(socket.username + ' disconnected');
 
+    for (var i=0; i<usersCount; i++){
+      if (usernames2[i].userName == socket.username) {
+        usernames2.splice(i, 1);
+        console.log('Removing item ' + i + ' from array');
+      }
+
+    // remove the username from global usernames list
+    delete usernames[socket.username];
+
+    // recalculate number of users
+    usersCount = Object.size(usernames);
+
+    // recalculate the distribution of buttons across users based on number of connected users
+    var sortedButtons = sortButtons(usersCount);
+    }
+
+    // assign each connected user their buttons
+    for (i=0; i < usersCount; i++) {
+      usernames2[i].assignedButtons = sortedButtons[i];
+      console.log('assigning user ' + usernames2[i] + ' these buttons ' + sortedButtons[usersCount-1]);
+    }
+
+    // tell client to update its view
+    io.sockets.emit('assignButtons', usernames2);
+
+    console.log(usernames2);
   });
 
 });
