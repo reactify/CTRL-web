@@ -15,7 +15,7 @@
       var peerName;
       var totalButtonCount = 4;
 
-      var socket = io.connect('192.168.1.74:8081');
+      var socket = io.connect('10.47.8.81:8081');
       socket.on('news', function (data) {
         console.log(data);
         socket.emit('my other event', { my: 'data' });

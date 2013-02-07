@@ -1,9 +1,9 @@
 var http = require('http'),
-    static = require('node-static');
+    static = require('node-static'),
     fs = require('fs'),
     osc = require('osc-min'),
     dgram = require('dgram'),
-    path = require('path');
+    path = require('path'),
     udp = dgram.createSocket('udp4');
 
 var outport = 41234;
@@ -35,6 +35,7 @@ function sendOSC(oscAddress, state) {
 var usernames = {};
 var usernames2 = [];
 var controller;
+var display;
 
 user = new Object();
 user.userName = "Blah";
@@ -74,10 +75,10 @@ function addUser(name, assignedButtons) {
 
 io.sockets.on('connection', function (socket) {
   socket.emit('news', { hello: 'world' });
-    console.log("User connected");
 
   // when the client emits 'adduser', this listens and executes
   socket.on('adduser', function(username){
+    console.log("User connected");
     // we store the username in the socket session for this client
     socket.username = username;
 
@@ -111,10 +112,17 @@ io.sockets.on('connection', function (socket) {
     }
 
     console.log(usernames2);
+    
+    io.sockets.socket(display).emit('userCountUpdated', usersCount);
 
     // tell client to update its view
     io.sockets.emit('assignButtons', usernames2);
   });
+
+  socket.on('registerAsDisplay', function(id) {
+    console.log('Display registered');
+    display = socket.id;
+  })
 
 
 
@@ -129,6 +137,7 @@ io.sockets.on('connection', function (socket) {
   });
 
   socket.on('buttonPressed', function(buttonIndex) {
+
     for (var i=0; i<usersCount; i++) {
       if (usernames2[i].userName == socket.username) {
         console.log(usernames2[i].userName + ' pressed = ' + buttonIndex);
@@ -179,6 +188,8 @@ io.sockets.on('connection', function (socket) {
     io.sockets.emit('assignButtons', usernames2);
 
     console.log(usernames2);
+    
+    io.sockets.socket(display).emit('userCountUpdated', usersCount);
   });
 
 });
